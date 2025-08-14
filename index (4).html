@@ -1,0 +1,170 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Code Review Bot with Test Suite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { 
+      background: linear-gradient(135deg, #1a0033, #4a1a6e); 
+      color: #e0e0e0; 
+      font-family: 'Arial', sans-serif; 
+      min-height: 100vh; 
+    }
+    .code-area { min-height: 250px; }
+    .fade-in { animation: fadeIn 1s ease-in; }
+    .slide-up { animation: slideUp 0.5s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+  </style>
+</head>
+<body class="p-6 flex items-center justify-center">
+  <div class="max-w-4xl w-full">
+    <h1 class="text-5xl font-bold text-center mb-8 text-purple-300 drop-shadow-md">AI Code Review Bot</h1>
+    <p class="text-center mb-10 text-gray-400">Enter code or run tests to check the AI review!</p>
+
+    <!-- Manual Input Section -->
+    <div class="bg-gray-800 p-6 rounded-xl shadow-lg glass mb-6">
+      <textarea id="codeInput" class="w-full p-4 bg-gray-900 border border-purple-500 rounded-lg code-area focus:outline-none focus:ring-2 focus:ring-purple-600 text-white placeholder-gray-500" placeholder="Paste your code here..."></textarea>
+      <button id="reviewBtn" class="mt-6 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105">Review Code</button>
+    </div>
+
+    <!-- Test Suite Section -->
+    <div class="bg-gray-800 p-6 rounded-xl shadow-lg glass mb-6">
+      <h2 class="text-2xl font-semibold text-purple-300 mb-4">Test Suite</h2>
+      <button id="runTestsBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105">Run All Tests</button>
+      <div id="testResults" class="mt-4 text-gray-300 hidden">
+        <h3 class="text-xl font-medium mb-2">Test Results</h3>
+        <ul id="testList" class="list-disc pl-6"></ul>
+      </div>
+    </div>
+
+    <!-- Feedback Section -->
+    <div id="feedback" class="mt-8 p-6 bg-gray-800 rounded-xl shadow-lg glass hidden">
+      <h2 class="text-2xl font-semibold text-purple-300 mb-4">Review Feedback</h2>
+      <ul id="feedbackList" class="list-disc pl-6 text-gray-300 slide-up"></ul>
+    </div>
+  </div>
+
+  <script>
+    // Manual Review Button Event
+    document.getElementById('reviewBtn').addEventListener('click', async () => {
+      const codeInput = document.getElementById('codeInput').value;
+      const feedbackDiv = document.getElementById('feedback');
+      const feedbackList = document.getElementById('feedbackList');
+
+      if (!codeInput.trim()) {
+        alert('Please enter some code to review!');
+        return;
+      }
+
+      feedbackDiv.classList.remove('hidden');
+      feedbackList.innerHTML = '<li class="animate-pulse">Analyzing your code...</li>';
+
+      try {
+        const response = await mockReviewCode(codeInput);
+        feedbackList.innerHTML = '';
+        response.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          li.classList.add('slide-up');
+          feedbackList.appendChild(li);
+        });
+      } catch (error) {
+        feedbackList.innerHTML = '<li class="text-red-400">Error fetching review. Please try again!</li>';
+      }
+    });
+
+    // Run Tests Button Event
+    document.getElementById('runTestsBtn').addEventListener('click', async () => {
+      const testResultsDiv = document.getElementById('testResults');
+      const testList = document.getElementById('testList');
+      testResultsDiv.classList.remove('hidden');
+      testList.innerHTML = '<li class="animate-pulse">Running tests...</li>';
+
+      const testCases = [
+        { code: 'var x = 10; console.log(x);', description: 'Test with var and console.log' },
+        { code: 'let y = 5;', description: 'Test with let' },
+        { code: '', description: 'Test with empty input' },
+        { code: 'function add(a, b) { return a + b; }', description: 'Test with function' },
+      ];
+
+      const results = await Promise.all(testCases.map(async (test) => {
+        const feedback = await mockReviewCode(test.code);
+        return { description: test.description, feedback, passed: feedback.length > 0 };
+      }));
+
+      testList.innerHTML = '';
+      results.forEach((result, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${index + 1}. ${result.description}</strong><br>Feedback: ${result.feedback.join('<br>')}<br>Status: ${result.passed ? 'Passed (Feedback generated)' : 'Failed (No feedback)'}`;
+        li.classList.add('slide-up');
+        testList.appendChild(li);
+      });
+    });
+
+    // Mock AI Review Function
+    function mockReviewCode(code) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const feedback = [];
+          if (code.includes('console.log')) {
+            feedback.push('Consider replacing console.log with a proper logging library for production.');
+          }
+          if (!code.includes('function') && code.trim()) {
+            feedback.push('Define functions to improve code modularity and readability.');
+          }
+          if (code.includes('var')) {
+            feedback.push('Use let or const instead of var for better variable scoping.');
+          }
+          if (feedback.length === 0 && code.trim()) {
+            feedback.push('Excellent work! No significant issues detected.');
+          }
+          resolve(feedback);
+        }, 1500);
+      });
+    }
+  </script>
+</body>
+</html>
