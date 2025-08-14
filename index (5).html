@@ -1,0 +1,166 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Muskan's Portfolio</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
+  <style>
+    body { margin: 0; font-family: 'Arial', sans-serif; background: linear-gradient(135deg, #1a0033, #330066); }
+    #root { height: 100vh; overflow-y: auto; }
+    .skill-bar { transition: width 2s ease-in-out; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const App = () => {
+      const skills = [
+        { name: 'Java', level: 90 },
+        { name: 'C/C++', level: 85 },
+        { name: 'HTML/CSS', level: 80 },
+      ];
+
+      return (
+        <div className="text-white min-h-screen">
+          <nav className="fixed w-full bg-gray-900 bg-opacity-90 backdrop-blur-md p-4 flex justify-between items-center z-10">
+            <div className="text-2xl font-bold text-purple-300">Muskan's Portfolio</div>
+            <ul className="flex space-x-6">
+              <li><a href="#home" className="hover:text-purple-300 transition duration-300">Home</a></li>
+              <li><a href="#skills" className="hover:text-purple-300 transition duration-300">Skills</a></li>
+              <li><a href="#education" className="hover:text-purple-300 transition duration-300">Education</a></li>
+              <li><a href="#projects" className="hover:text-purple-300 transition duration-300">Projects</a></li>
+              <li><a href="#resume" className="hover:text-purple-300 transition duration-300">Resume</a></li>
+              <li><a href="#contact" className="hover:text-purple-300 transition duration-300">Contact</a></li>
+            </ul>
+          </nav>
+
+          <section id="home" className="min-h-screen flex items-center justify-between p-10 bg-gradient-to-r from-purple-900 to-indigo-900 animate__animated animate__fadeIn">
+            <div className="max-w-lg">
+              <h1 className="text-5xl font-bold text-purple-100 mb-4">Hi! I'm Muskan, a BCA Student</h1>
+              <p className="text-lg text-gray-200 mb-6">As a dedicated BCA student in my 3rd semester, I am passionate about coding and technology, constantly honing my skills to build innovative solutions.</p>
+              <a href="resume.pdf" download className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition duration-300">Download Resume</a>
+            </div>
+            <img src="your-photo.jpg" alt="Muskan" className="w-1/3 rounded-lg shadow-lg transform hover:scale-105 transition duration-500" />
+          </section>
+
+          <section id="skills" className="py-20 px-10">
+            <h2 className="text-4xl font-bold text-center text-purple-200 mb-10">Skills</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+              {skills.map((skill, index) => (
+                <div key={index} className="text-center">
+                  <h3 className="text-xl text-gray-100 mb-2">{skill.name}</h3>
+                  <div className="w-full bg-gray-700 rounded-full h-6 overflow-hidden">
+                    <div className="skill-bar bg-purple-500 h-6 rounded-full" style={{ width: `${skill.level}%` }}></div>
+                  </div>
+                  <p className="text-gray-300 mt-2">{skill.level}%</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section id="education" className="py-20 px-10 bg-gray-900">
+            <h2 className="text-4xl font-bold text-center text-purple-200 mb-10">Education</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              <div className="bg-purple-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                <h3 className="text-2xl text-purple-100">+2</h3>
+                <p className="text-gray-300">St Charles Women's PU College - Completed with distinction and State level 13th rank</p>
+              </div>
+              <div className="bg-purple-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                <h3 className="text-2xl text-purple-100">BCA</h3>
+                <p className="text-gray-300">Kristu Jayanti Deemed to be University - Expected 2027, currently in 3rd semester</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="projects" className="py-20 px-10">
+            <h2 className="text-4xl font-bold text-center text-purple-200 mb-10">Projects</h2>
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-8 max-w-4xl mx-auto">
+              <div className="bg-purple-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                <h3 className="text-2xl text-purple-100">AI Code Review Bot</h3>
+                <p className="text-gray-300 mt-2">A prototype AI-powered tool to review code and provide constructive feedback, built using HTML, CSS, and JavaScript. Features include code input, mock AI analysis, and a test suite for validation.</p>
+                <a href="ai-code-review-bot.html" className="mt-4 inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-300">View Project</a>
+              </div>
+            </div>
+          </section>
+
+          <section id="resume" className="py-20 px-10">
+            <h2 className="text-4xl font-bold text-center text-purple-200 mb-10">Resume</h2>
+            <div className="max-w-4xl mx-auto bg-purple-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+              <h3 className="text-2xl text-purple-100 mb-4">Experience</h3>
+              <ul className="list-disc pl-5 text-gray-300 mb-6">
+                <li>Attended Oracle APEX Workshop</li>
+                <li>Attended Oracle Java Workshop</li>
+                <li>Explored AI/ML concepts</li>
+              </ul>
+              <h3 className="text-2xl text-purple-100 mb-4">Achievements</h3>
+              <ul className="list-disc pl-5 text-gray-300">
+                <li>Software Engineering Job Simulation Certificate by Jo Morgan</li>
+                <li>AI for Beginners Certificate from HP</li>
+                <li>Multiple certificates from Infosys</li>
+              </ul>
+            </div>
+          </section>
+
+          <section id="contact" className="py-20 px-10 bg-gradient-to-r from-purple-900 to-indigo-900">
+            <h2 className="text-4xl font-bold text-center text-purple-200 mb-10">Get In Touch</h2>
+            <form className="max-w-md mx-auto space-y-6 bg-gray-800 p-6 rounded-lg shadow-lg">
+              <input type="text" placeholder="First Name" className="w-full p-3 bg-gray-700 rounded text-white" value="Muskan" readOnly />
+              <input type="email" placeholder="Email Address" className="w-full p-3 bg-gray-700 rounded text-white" value="muski96638@gmail.com" readOnly />
+              <input type="text" placeholder="LinkedIn" className="w-full p-3 bg-gray-700 rounded text-white" value="https://www.linkedin.com/in/muskan-89614b337?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app" readOnly />
+              <textarea placeholder="Message" className="w-full p-3 bg-gray-700 rounded text-white h-24"></textarea>
+              <button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg transition duration-300">Send Message</button>
+            </form>
+          </section>
+        </div>
+      );
+    };
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
